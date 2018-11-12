@@ -1,6 +1,26 @@
 # sfwl
 顺丰物流 Node SDK
 
+```JS
+const SFWL = require('sfwl');
+
+const sfwl = new SFWL({ clientCode: 'ABCDEF', checkWord: 'asdf1234' });
+
+sfwl.order({
+  orderid: 'test12345woody01',
+  is_gen_bill_no: 1,
+  j_company: '小木屋',
+  j_contact: '胡迪测试',
+  j_tel: '15500001111',
+  j_address: '北京市海淀区海淀路19-1中成大厦1109',
+  d_company: '测试公司',
+  d_contact: '测试收件人',
+  d_tel: '15511110000',
+  d_address: '广东省深圳市南山区科技中二路深圳软件园一期7-305',
+  pay_method: 2,
+}).then(res => console.log(JSON.stringify(res)));
+```
+
 ## 接口规范说明
 
 1. 报文及报文编码
