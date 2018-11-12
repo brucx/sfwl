@@ -1,0 +1,7 @@
+root: true
+extends:
+  - 'airbnb'
+parserOptions:
+  sourceType: 'script'
+rules:
+  no-underscore-dangle: 0
