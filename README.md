@@ -1,4 +1,4 @@
-# sfwl
+# sfwl ![NPM version](https://badge.fury.io/js/sfwl.png)
 顺丰物流 Node SDK
 
 [API接口列表](https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=890150&level4=973438)
