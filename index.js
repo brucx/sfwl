@@ -54,7 +54,7 @@ module.exports = class SFWL {
    *  1) 客户系统向顺丰下发订单。
    *  2) 为订单分配运单号。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=763554
-   * @param {*} data Order 参数
+   * @param {*} data Order 参数 { orderid!, mailno, is_gen_bill_no... }
    */
   async order(data) {
     const serviceName = 'Order';
@@ -65,7 +65,7 @@ module.exports = class SFWL {
    * 订单结果查询
    * 因Internet环境下，网络不是绝对可靠，用户系统下订单到顺丰后，不一定可以收到顺丰系统返回的数据，此接口用于在未收到返回数据时，查询下订单（含筛选）接口客户订单当前的处理情况。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=965417
-   * @param {*} data OrderSearch 参数 { orderid, search_type }
+   * @param {*} data OrderSearch 参数 { orderid!, search_type }
    */
   async orderSearch(data) {
     const serviceName = 'OrderSearch';
@@ -79,7 +79,7 @@ module.exports = class SFWL {
    *   • 客户在发货前取消订单。
    * 注意：订单取消之后，订单号也是不能重复利用的。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=970942
-   * @param {*} data OrderConfirm 参数 { orderid, search_type }
+   * @param {*} data OrderConfirm 参数 { orderid!, mailno, dealtype, customs_batchs... }
    */
   async orderConfirm(data) {
     const serviceName = 'OrderConfirm';
@@ -90,10 +90,36 @@ module.exports = class SFWL {
    * 订单筛选
    * 客户系统通过此接口向顺丰系统发送主动的筛单请求，用于判断客户的收、派地址是否属于顺丰的收派范围。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=923030
-   * @param {*} data OrderFilter 参数 { filter_type, orderid, d_address }
+   * @param {*} data OrderFilter 参数 { filter_type, orderid, d_address! }
    */
   async orderFilter(data) {
     const serviceName = 'OrderFilter';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 路由查询
+   * 客户可通过此接口查询顺丰运单路由，系统将返回当前时间点已发生的路由信息。
+   * 此路由查询接口支持两类查询方式：
+   * 1）、根据运单号查询：系统将根据运单号与后台的月结卡号校验归属关系，系统只返回具有正确归属关系的运单路由信息。
+   *   或者在参数check_phoneNo中传入运单对应的电话号码后4位（寄方或者收方电话都可以），系统将通过后端校验后，返回对应运单路由信息；
+   * 2）、根据订单号查询：系统将根据接入编码与订单号，匹配对应的运单号，然后返回相关路由信息。
+   * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=893568
+   * @param {*} data Route 参数 { tracking_type, tracking_number!, method_type, reference_number... }
+   */
+  async route(data) {
+    const serviceName = 'Route';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 子单号申请接口
+   * 客户系统通过此接口向顺丰系统发送主动的筛单请求，用于判断客户的收、派地址是否属于顺丰的收派范围。
+   * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=759148
+   * @param {*} data OrderZD 参数 { orderid, parcel_quantity }
+   */
+  async orderZD(data) {
+    const serviceName = 'OrderZD';
     return this.request(serviceName, data);
   }
 };
