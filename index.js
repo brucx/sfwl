@@ -20,14 +20,14 @@ module.exports = class SFWL {
     const obj = {
       Request: {
         _attributes: {
-          service,
+          service: `${service}Service`,
           lang: 'zh-CN',
         },
         Head: {
           _text: this.clientCode,
         },
         Body: {
-          Order: {
+          [service]: {
             _attributes: data,
           },
         },
@@ -45,11 +45,6 @@ module.exports = class SFWL {
       verifyCode,
     }));
     const result = xmlJs.xml2js(response.data, { compact: true });
-    if (result.Response.Head._text !== 'OK') {
-      const error = new Error('顺丰下单失败');
-      error.result = result;
-      throw error;
-    }
     return result;
   }
 
@@ -60,12 +55,22 @@ module.exports = class SFWL {
    * @param {*} addedData AddedService 参数
    */
   async order(data, addedData) {
-    const serviceName = 'OrderService';
+    const serviceName = 'Order';
     if (addedData) {
       Object.assign(data, {
         AddedService: addedData,
       });
     }
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 订单结果查询
+   * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=965417
+   * @param {*} data OrderSearch 参数 { orderid, search_type }
+   */
+  async orderSearch(data) {
+    const serviceName = 'OrderSearch';
     return this.request(serviceName, data);
   }
 };
