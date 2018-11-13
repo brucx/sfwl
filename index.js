@@ -10,11 +10,7 @@ module.exports = class SFWL {
     this.checkWord = checkWord;
   }
 
-  generateVerifyCode(reqXML) {
-    const md5 = crypto.createHash('md5');
-    const result = md5.update(reqXML + this.checkWord).digest('base64');
-    return result;
-  }
+  generateVerifyCode(reqXML) { return crypto.createHash('md5').update(reqXML + this.checkWord).digest('base64'); }
 
   buildXML(service, data) {
     const bodyName = service === 'Route' ? 'RouteRequest' : service;
@@ -41,10 +37,7 @@ module.exports = class SFWL {
   async request(service, data) {
     const xml = this.buildXML(service, data);
     const verifyCode = this.generateVerifyCode(xml);
-    const response = await axios.post(this.endpoint, querystring.stringify({
-      xml,
-      verifyCode,
-    }));
+    const response = await axios.post(this.endpoint, querystring.stringify({ xml, verifyCode }));
     const result = xmlJs.xml2js(response.data, { compact: true });
     return result;
   }
