@@ -50,27 +50,40 @@ module.exports = class SFWL {
 
   /**
    * 快递下单
+   * 下订单接口根据客户需要，可提供以下两个功能：
+   *  1) 客户系统向顺丰下发订单。
+   *  2) 为订单分配运单号。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=763554
    * @param {*} data Order 参数
    * @param {*} addedData AddedService 参数
    */
-  async order(data, addedData) {
+  async order(data) {
     const serviceName = 'Order';
-    if (addedData) {
-      Object.assign(data, {
-        AddedService: addedData,
-      });
-    }
     return this.request(serviceName, data);
   }
 
   /**
    * 订单结果查询
+   * 因Internet环境下，网络不是绝对可靠，用户系统下订单到顺丰后，不一定可以收到顺丰系统返回的数据，此接口用于在未收到返回数据时，查询下订单（含筛选）接口客户订单当前的处理情况。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=965417
    * @param {*} data OrderSearch 参数 { orderid, search_type }
    */
   async orderSearch(data) {
     const serviceName = 'OrderSearch';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 订单确认/取消
+   * 该接口用于：
+   *   • 客户在确定将货物交付给顺丰托运后，将运单上的一些重要信息，如快件重量通过此接口发送给顺丰。
+   *   • 客户在发货前取消订单。
+   * 注意：订单取消之后，订单号也是不能重复利用的。
+   * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=970942
+   * @param {*} data OrderConfirm 参数 { orderid, search_type }
+   */
+  async orderConfirm(data) {
+    const serviceName = 'OrderConfirm';
     return this.request(serviceName, data);
   }
 };
