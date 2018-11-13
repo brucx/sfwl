@@ -1,6 +1,6 @@
 {
   "name": "sfwl",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "顺丰物流 SDK",
   "main": "index.js",
   "scripts": {
