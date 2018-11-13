@@ -55,7 +55,6 @@ module.exports = class SFWL {
    *  2) 为订单分配运单号。
    * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=763554
    * @param {*} data Order 参数
-   * @param {*} addedData AddedService 参数
    */
   async order(data) {
     const serviceName = 'Order';
@@ -84,6 +83,17 @@ module.exports = class SFWL {
    */
   async orderConfirm(data) {
     const serviceName = 'OrderConfirm';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 订单筛选
+   * 客户系统通过此接口向顺丰系统发送主动的筛单请求，用于判断客户的收、派地址是否属于顺丰的收派范围。
+   * https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=902583&level4=923030
+   * @param {*} data OrderFilter 参数 { filter_type, orderid, d_address }
+   */
+  async orderFilter(data) {
+    const serviceName = 'OrderFilter';
     return this.request(serviceName, data);
   }
 };
