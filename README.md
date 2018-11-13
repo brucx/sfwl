@@ -1,6 +1,8 @@
 # sfwl
 顺丰物流 Node SDK
 
+[API接口列表](https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=890150&level4=973438)
+
 ```JS
 const SFWL = require('sfwl');
 
@@ -19,6 +21,8 @@ sfwl.order({
   d_address: '广东省深圳市南山区科技中二路深圳软件园一期7-305',
   pay_method: 2,
 }).then(res => console.log(JSON.stringify(res)));
+sfwl.orderSearch({ orderid: 'test12345woody01', search_type: 1 }).then(res => console.log(JSON.stringify(res)));
+sfwl.route({ tracking_number: 'test12345woody01', tracking_type: 2 }).then(res => console.log(JSON.stringify(res)));
 ```
 
 ## 接口规范说明

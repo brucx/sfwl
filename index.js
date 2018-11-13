@@ -17,6 +17,7 @@ module.exports = class SFWL {
   }
 
   buildXML(service, data) {
+    const bodyName = service === 'Route' ? 'RouteRequest' : service;
     const obj = {
       Request: {
         _attributes: {
@@ -27,7 +28,7 @@ module.exports = class SFWL {
           _text: this.clientCode,
         },
         Body: {
-          [service]: {
+          [bodyName]: {
             _attributes: data,
           },
         },
