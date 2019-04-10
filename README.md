@@ -4,7 +4,7 @@
 [API接口列表](https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=890150&level4=973438)
 
 ```JS
-const SFWL = require('sfwl');
+const SFWL = require('sfwl').SFWL;
 
 const sfwl = new SFWL({ clientCode: 'ABCDEF', checkWord: 'asdf1234' });
 
@@ -20,6 +20,23 @@ sfwl.order({
   d_tel: '15511110000',
   d_address: '广东省深圳市南山区科技中二路深圳软件园一期7-305',
   pay_method: 2,
+  cargos: [{
+    name: 'Foo',
+    count: 1,
+    unit: 'Box',
+    weight: 3.112,
+    amount: 90.999,
+    currency: 'USD',
+    source_area: 'US'
+  }, {
+    name: 'Bar',
+    count: 1,
+    unit: 'Piece',
+    weight: 1.433,
+    amount: 12.999,
+    currency: 'USD',
+    source_area: 'US'
+  }]
 }).then(res => console.log(JSON.stringify(res)));
 sfwl.orderSearch({ orderid: 'test12345woody01', search_type: 1 }).then(res => console.log(JSON.stringify(res)));
 sfwl.route({ tracking_number: 'test12345woody01', tracking_type: 2 }).then(res => console.log(JSON.stringify(res)));
