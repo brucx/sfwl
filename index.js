@@ -3,9 +3,19 @@ const crypto = require('crypto');
 const xmlJs = require('xml-js');
 const querystring = require('querystring');
 
-module.exports = class SFWL {
+class SFError extends Error {
+  constructor(...params) {
+    super(...params);
+    this.name = this.constructor.name;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SFError);
+    }
+  }
+}
+
+class SFWL {
   constructor({ clientCode, checkWord, endpoint }) {
-    this.endpoint = endpoint || 'http://bsp-oisp.sf-express.com/bsp-oisp/sfexpressService';
+    this.endpoint = endpoint || 'https://bsp-oisp.sf-express.com/bsp-oisp/sfexpressService';
     this.clientCode = clientCode;
     this.checkWord = checkWord;
   }
@@ -24,9 +34,7 @@ module.exports = class SFWL {
           _text: this.clientCode,
         },
         Body: {
-          [bodyName]: {
-            _attributes: data,
-          },
+          [bodyName]: data,
         },
       },
     };
@@ -34,11 +42,43 @@ module.exports = class SFWL {
     return result;
   }
 
+  parseXML(service, data) {
+    const result = xmlJs.xml2js(data, {compact: true});
+    const response = result.Response;
+    if (response.ERROR) {
+      const error = new SFError(response.ERROR._text);
+      error.code = response.ERROR._attributes.code;
+      return error;
+    }
+    return this.formatBody(response.Body[`${service}Response`]);
+  }
+
+  formatBody(data) {
+    for (let attr in data) {
+      if (data.hasOwnProperty(attr)) {
+        if (attr === '_attributes') {
+          Object.assign(data, data[attr]);
+          delete data[attr];
+        } else {
+          if (Array.isArray(data[attr])) {
+            data[attr] = data[attr].map(this.formatBody.bind(this));
+          } else if (typeof data[attr] === 'object') {
+            data[attr] = this.formatBody(data[attr])
+          }
+        }
+      }
+    }
+    return data;
+  }
+
   async request(service, data) {
     const xml = this.buildXML(service, data);
     const verifyCode = this.generateVerifyCode(xml);
     const response = await axios.post(this.endpoint, querystring.stringify({ xml, verifyCode }));
-    const result = xmlJs.xml2js(response.data, { compact: true });
+    const result = this.parseXML(service, response.data);
+    if (result instanceof Error) {
+      throw result;
+    }
     return result;
   }
 
@@ -52,7 +92,13 @@ module.exports = class SFWL {
    */
   async order(data) {
     const serviceName = 'Order';
-    return this.request(serviceName, data);
+    return this.request(serviceName, {
+      _attributes: {
+        ...data,
+        cargos: undefined,
+      },
+      Cargo: (data.cargos||[]).map(cargo => ({ _attributes: cargo }))
+    });
   }
 
   /**
@@ -63,7 +109,7 @@ module.exports = class SFWL {
    */
   async orderSearch(data) {
     const serviceName = 'OrderSearch';
-    return this.request(serviceName, data);
+    return this.request(serviceName, { _attributes: data });
   }
 
   /**
@@ -77,7 +123,13 @@ module.exports = class SFWL {
    */
   async orderConfirm(data) {
     const serviceName = 'OrderConfirm';
-    return this.request(serviceName, data);
+    return this.request(serviceName, {
+      _attributes: {
+        ...data,
+        options: undefined,
+      },
+      OrderConfirmOption: data.options ? { _attributes: data.options } : undefined,
+    });
   }
 
   /**
@@ -88,7 +140,13 @@ module.exports = class SFWL {
    */
   async orderFilter(data) {
     const serviceName = 'OrderFilter';
-    return this.request(serviceName, data);
+    return this.request(serviceName, {
+      _attributes: {
+        ...data,
+        options: undefined,
+      },
+      OrderFilterOption: data.options ? { _attributes: data.options } : undefined,
+    });
   }
 
   /**
@@ -103,7 +161,7 @@ module.exports = class SFWL {
    */
   async route(data) {
     const serviceName = 'Route';
-    return this.request(serviceName, data);
+    return this.request(serviceName, { _attributes: data });
   }
 
   /**
@@ -114,6 +172,11 @@ module.exports = class SFWL {
    */
   async orderZD(data) {
     const serviceName = 'OrderZD';
-    return this.request(serviceName, data);
+    return this.request(serviceName, { _attributes: data });
   }
+}
+
+module.exports = {
+  SFWL,
+  SFError
 };
