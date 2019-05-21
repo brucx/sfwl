@@ -33,9 +33,7 @@ class SFWL {
    * xml 样例：
    * ```
    * <Request service="OrderService" lang="cn_ZH">
-   *
    *   <Head>BSPdevelop</Head>
-   *
    *   <Body>
    *     <Order orderid="TEST20180410001" express_type='1'
    *       j_province='广东省' j_city='深圳市' j_county='福田区' j_company='顺丰速运'
