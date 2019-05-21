@@ -21,13 +21,13 @@ class SFError extends Error {
 }
 
 class SFWL {
-  constructor({ clientCode, checkWord, endpoint }) {
-    this.endpoint = endpoint || 'https://bsp-oisp.sf-express.com/bsp-oisp/sfexpressService';
+  constructor({ clientCode, checkWord, endpoint = 'https://bsp-oisp.sf-express.com/bsp-oisp/sfexpressService' }) {
+    this.endpoint = endpoint;
     this.clientCode = clientCode;
     this.checkWord = checkWord;
   }
 
-  generateVerifyCode(reqXML) { return crypto.createHash('md5').update(reqXML + this.checkWord).digest('base64'); }
+  _generateVerifyCode(reqXML) { return crypto.createHash('md5').update(reqXML + this.checkWord).digest('base64'); }
 
   /**
    * xml 样例：
@@ -52,7 +52,7 @@ class SFWL {
    * @param {*} service
    * @param {*} data
    */
-  buildXML(service, data) {
+  _buildXML(service, data) {
     const bodyNameOfServices = {
       Route: 'RouteRequest',
       OrderReverse: 'Order',
@@ -60,7 +60,7 @@ class SFWL {
       CheckWorkDay: 'CheckWorkDayReq',
     };
     const bodyName = bodyNameOfServices[service] || service;
-    const normalizedData = this.normalizeData(data);
+    const normalizedData = this._normalizeData(data);
 
     const obj = {
       Request: {
@@ -84,7 +84,7 @@ class SFWL {
    * 将 object 转化成 compact 格式
    * @param {*} data
    */
-  normalizeData(data) {
+  _normalizeData(data) {
     const obj = {};
     Object.keys(data).forEach((key) => {
       // 是原生类型
@@ -93,53 +93,53 @@ class SFWL {
       }
       // 是对象
       if (data[key] instanceof Object) {
-        obj[key.charAt(0).toUpperCase() + key.slice(1)] = this.normalizeData(data[key]);
+        obj[key.charAt(0).toUpperCase() + key.slice(1)] = this._normalizeData(data[key]);
       }
       // 是数组
       if (data[key] instanceof Array) {
-        obj[key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, '')] = data[key].map(e => this.normalizeData(e));
+        obj[key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, '')] = data[key].map(e => this._normalizeData(e));
       }
     });
     return obj;
   }
 
-  parseXML(service, data) {
+  _parseXML(service, data) {
     const bodyNameOfServices = {
       OrderSearch: 'Order',
     };
     const bodyName = bodyNameOfServices[service] || service;
     const result = xmlJs.xml2js(data, { compact: true });
-    log({ parseXML: { service, result } });
+    log({ _parseXML: { service, result } });
     const response = result.Response;
     if (response.ERROR) {
       const error = new SFError(response.ERROR._text);
       error.code = response.ERROR._attributes.code;
       return error;
     }
-    return this.formatBody(response.Body[`${bodyName}Response`]);
+    return this._formatBody(response.Body[`${bodyName}Response`]);
   }
 
-  formatBody(data) {
+  _formatBody(data) {
     const obj = {};
     Object.keys(data).forEach((key) => {
       if (key === '_attributes') {
         Object.assign(obj, data[key]);
       } else if (Array.isArray(data[key])) {
-        obj[key] = data[key].map(this.formatBody.bind(this));
+        obj[key] = data[key].map(e => this._formatBody(e));
       } else if (typeof data[key] === 'object') {
-        obj[key] = this.formatBody(data[key]);
+        obj[key] = this._formatBody(data[key]);
       }
     });
     return obj;
   }
 
-  async request(service, data) {
-    const xml = this.buildXML(service, data);
+  async _request(service, data) {
+    const xml = this._buildXML(service, data);
     log({ xml });
-    const verifyCode = this.generateVerifyCode(xml);
+    const verifyCode = this._generateVerifyCode(xml);
     const response = await axios.post(this.endpoint, querystring.stringify({ xml, verifyCode }));
     log({ response: response.data });
-    const result = this.parseXML(service, response.data);
+    const result = this._parseXML(service, response.data);
     log({ result });
     if (result instanceof Error) {
       throw result;
@@ -157,7 +157,7 @@ class SFWL {
    */
   async order(data) {
     const serviceName = 'Order';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -168,7 +168,7 @@ class SFWL {
    */
   async orderSearch(data) {
     const serviceName = 'OrderSearch';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -182,7 +182,7 @@ class SFWL {
    */
   async orderConfirm(data) {
     const serviceName = 'OrderConfirm';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -193,7 +193,7 @@ class SFWL {
    */
   async orderFilter(data) {
     const serviceName = 'OrderFilter';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -208,7 +208,7 @@ class SFWL {
    */
   async route(data) {
     const serviceName = 'Route';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -219,7 +219,7 @@ class SFWL {
    */
   async orderZD(data) {
     const serviceName = 'OrderZD';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -230,7 +230,7 @@ class SFWL {
    */
   async checkWorkDay(data) {
     const serviceName = 'CheckWorkDay';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -244,7 +244,7 @@ class SFWL {
    */
   async orderReverse(data) {
     const serviceName = 'OrderReverse';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 
   /**
@@ -255,7 +255,7 @@ class SFWL {
    */
   async orderRvsCancel(data) {
     const serviceName = 'OrderRvsCancel';
-    return this.request(serviceName, data);
+    return this._request(serviceName, data);
   }
 }
 
