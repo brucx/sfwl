@@ -3,6 +3,13 @@ const crypto = require('crypto');
 const xmlJs = require('xml-js');
 const querystring = require('querystring');
 
+const log = (obj) => {
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.debug(obj);
+  }
+};
+
 class SFError extends Error {
   constructor(...params) {
     super(...params);
@@ -22,8 +29,39 @@ class SFWL {
 
   generateVerifyCode(reqXML) { return crypto.createHash('md5').update(reqXML + this.checkWord).digest('base64'); }
 
+  /**
+   * xml 样例：
+   * ```
+   * <Request service="OrderService" lang="cn_ZH">
+   *
+   *   <Head>BSPdevelop</Head>
+   *
+   *   <Body>
+   *     <Order orderid="TEST20180410001" express_type='1'
+   *       j_province='广东省' j_city='深圳市' j_county='福田区' j_company='顺丰速运'
+   *       j_contact='小丰' j_tel='95338' j_address='新洲十一街万基商务大厦'
+   *       d_province='广东省' d_city='深圳市' d_county='南山区' d_company='顺丰科技'
+   *       d_contact='小顺' d_tel='4008111111' d_address='学府路软件产业基地1栋B座' parcel_quantity='1'
+   *       cargo_total_weight='1' custid='7551234567' pay_method='1' routelabelService='1'>
+   *       <Cargo name='手机'></Cargo>
+   *     </Order>
+   *   </Body>
+   * </Request>
+   * ```
+   *
+   * @param {*} service
+   * @param {*} data
+   */
   buildXML(service, data) {
-    const bodyName = service === 'Route' ? 'RouteRequest' : service;
+    const bodyNameOfServices = {
+      Route: 'RouteRequest',
+      OrderReverse: 'Order',
+      OrderRvsCancel: 'Order',
+      CheckWorkDay: 'CheckWorkDayReq',
+    };
+    const bodyName = bodyNameOfServices[service] || service;
+    const normalizedData = this.normalizeData(data);
+
     const obj = {
       Request: {
         _attributes: {
@@ -34,7 +72,7 @@ class SFWL {
           _text: this.clientCode,
         },
         Body: {
-          [bodyName]: data,
+          [bodyName]: normalizedData,
         },
       },
     };
@@ -42,40 +80,67 @@ class SFWL {
     return result;
   }
 
+  /**
+   * 将 object 转化成 compact 格式
+   * @param {*} data
+   */
+  normalizeData(data) {
+    const obj = {};
+    Object.keys(data).forEach((key) => {
+      // 是原生类型
+      if (['string', 'number'].indexOf(typeof data[key]) !== -1) {
+        obj._attributes = Object.assign(obj._attributes || {}, { [key]: data[key] });
+      }
+      // 是对象
+      if (data[key] instanceof Object) {
+        obj[key.charAt(0).toUpperCase() + key.slice(1)] = this.normalizeData(data[key]);
+      }
+      // 是数组
+      if (data[key] instanceof Array) {
+        obj[key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, '')] = data[key].map(e => this.normalizeData(e));
+      }
+    });
+    return obj;
+  }
+
   parseXML(service, data) {
-    const result = xmlJs.xml2js(data, {compact: true});
+    const bodyNameOfServices = {
+      OrderSearch: 'Order',
+    };
+    const bodyName = bodyNameOfServices[service] || service;
+    const result = xmlJs.xml2js(data, { compact: true });
+    log({ parseXML: { service, result } });
     const response = result.Response;
     if (response.ERROR) {
       const error = new SFError(response.ERROR._text);
       error.code = response.ERROR._attributes.code;
       return error;
     }
-    return this.formatBody(response.Body[`${service}Response`]);
+    return this.formatBody(response.Body[`${bodyName}Response`]);
   }
 
   formatBody(data) {
-    for (let attr in data) {
-      if (data.hasOwnProperty(attr)) {
-        if (attr === '_attributes') {
-          Object.assign(data, data[attr]);
-          delete data[attr];
-        } else {
-          if (Array.isArray(data[attr])) {
-            data[attr] = data[attr].map(this.formatBody.bind(this));
-          } else if (typeof data[attr] === 'object') {
-            data[attr] = this.formatBody(data[attr])
-          }
-        }
+    const obj = {};
+    Object.keys(data).forEach((key) => {
+      if (key === '_attributes') {
+        Object.assign(obj, data[key]);
+      } else if (Array.isArray(data[key])) {
+        obj[key] = data[key].map(this.formatBody.bind(this));
+      } else if (typeof data[key] === 'object') {
+        obj[key] = this.formatBody(data[key]);
       }
-    }
-    return data;
+    });
+    return obj;
   }
 
   async request(service, data) {
     const xml = this.buildXML(service, data);
+    log({ xml });
     const verifyCode = this.generateVerifyCode(xml);
     const response = await axios.post(this.endpoint, querystring.stringify({ xml, verifyCode }));
+    log({ response: response.data });
     const result = this.parseXML(service, response.data);
+    log({ result });
     if (result instanceof Error) {
       throw result;
     }
@@ -92,13 +157,7 @@ class SFWL {
    */
   async order(data) {
     const serviceName = 'Order';
-    return this.request(serviceName, {
-      _attributes: {
-        ...data,
-        cargos: undefined,
-      },
-      Cargo: (data.cargos||[]).map(cargo => ({ _attributes: cargo }))
-    });
+    return this.request(serviceName, data);
   }
 
   /**
@@ -109,7 +168,7 @@ class SFWL {
    */
   async orderSearch(data) {
     const serviceName = 'OrderSearch';
-    return this.request(serviceName, { _attributes: data });
+    return this.request(serviceName, data);
   }
 
   /**
@@ -123,13 +182,7 @@ class SFWL {
    */
   async orderConfirm(data) {
     const serviceName = 'OrderConfirm';
-    return this.request(serviceName, {
-      _attributes: {
-        ...data,
-        options: undefined,
-      },
-      OrderConfirmOption: data.options ? { _attributes: data.options } : undefined,
-    });
+    return this.request(serviceName, data);
   }
 
   /**
@@ -140,13 +193,7 @@ class SFWL {
    */
   async orderFilter(data) {
     const serviceName = 'OrderFilter';
-    return this.request(serviceName, {
-      _attributes: {
-        ...data,
-        options: undefined,
-      },
-      OrderFilterOption: data.options ? { _attributes: data.options } : undefined,
-    });
+    return this.request(serviceName, data);
   }
 
   /**
@@ -161,7 +208,7 @@ class SFWL {
    */
   async route(data) {
     const serviceName = 'Route';
-    return this.request(serviceName, { _attributes: data });
+    return this.request(serviceName, data);
   }
 
   /**
@@ -172,11 +219,44 @@ class SFWL {
    */
   async orderZD(data) {
     const serviceName = 'OrderZD';
-    return this.request(serviceName, { _attributes: data });
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 是否工作日接口
+   * 该接口用于客户系统查询是否工作日信息，
+   * 丰桥上没有接口信息,需要向sf工作人员索要文档
+   * @param {*} data CheckWorkDay 参数 { country_code!, lang_code!, media_code!,source_code!... }
+   */
+  async checkWorkDay(data) {
+    const serviceName = 'CheckWorkDay';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 退货下单（含筛单）接口
+   * 下单接口根据客户需要，可提供以下三个功能：
+   * 1)客户系统向顺丰下发订单。
+   * 2)为订单分配运单号。
+   * 3)筛单。
+   * 丰桥上没有接口信息,需要向sf工作人员索要文档
+   * @param {*} data OrderReverse 参数 { orderid!, express_type, j_company,j_contact!... }
+   */
+  async orderReverse(data) {
+    const serviceName = 'OrderReverse';
+    return this.request(serviceName, data);
+  }
+
+  /**
+   * 退货消单接口
+   * 此功能是完成退货消单功能.
+   * 丰桥上没有接口信息,需要向sf工作人员索要文档
+   * @param {*} data OrderRvsCancel 参数 { orderid! }
+   */
+  async orderRvsCancel(data) {
+    const serviceName = 'OrderRvsCancel';
+    return this.request(serviceName, data);
   }
 }
 
-module.exports = {
-  SFWL,
-  SFError
-};
+module.exports = SFWL;

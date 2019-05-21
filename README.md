@@ -4,7 +4,7 @@
 [API接口列表](https://qiao.sf-express.com/pages/developDoc/index.html?level2=296618&level3=890150&level4=973438)
 
 ```JS
-const SFWL = require('sfwl').SFWL;
+const SFWL = require('sfwl');
 
 const sfwl = new SFWL({ clientCode: 'ABCDEF', checkWord: 'asdf1234' });
 
@@ -36,7 +36,21 @@ sfwl.order({
     amount: 12.999,
     currency: 'USD',
     source_area: 'US'
-  }]
+  }],
+  addedService: [{
+    name: 'COD',
+    value: '3000',
+    value1: '7551234567',
+  }, {
+    name: 'INSURE',
+    value: '2304.23',
+  }, {
+    name: 'URGENT',
+  }],
+  extra: {
+    e1: 'abc1',
+    e2: 'abc2',
+  },
 }).then(res => console.log(JSON.stringify(res)));
 sfwl.orderSearch({ orderid: 'test12345woody01', search_type: 1 }).then(res => console.log(JSON.stringify(res)));
 sfwl.route({ tracking_number: 'test12345woody01', tracking_type: 2 }).then(res => console.log(JSON.stringify(res)));
