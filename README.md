@@ -20,7 +20,7 @@ sfwl.order({
   d_tel: '15511110000',
   d_address: '广东省深圳市南山区科技中二路深圳软件园一期7-305',
   pay_method: 2,
-  cargos: [{
+  Cargo: [{
     name: 'Foo',
     count: 1,
     unit: 'Box',
@@ -37,7 +37,7 @@ sfwl.order({
     currency: 'USD',
     source_area: 'US'
   }],
-  addedService: [{
+  AddedService: [{
     name: 'COD',
     value: '3000',
     value1: '7551234567',
@@ -47,7 +47,7 @@ sfwl.order({
   }, {
     name: 'URGENT',
   }],
-  extra: {
+  Extra: {
     e1: 'abc1',
     e2: 'abc2',
   },

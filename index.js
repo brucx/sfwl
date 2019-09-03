@@ -85,17 +85,19 @@ class SFWL {
   _normalizeData(data) {
     const obj = {};
     Object.keys(data).forEach((key) => {
-      // 是原生类型
-      if (['string', 'number'].indexOf(typeof data[key]) !== -1) {
-        obj._attributes = Object.assign(obj._attributes || {}, { [key]: data[key] });
-      }
-      // 是对象
-      if (data[key] instanceof Object) {
-        obj[key.charAt(0).toUpperCase() + key.slice(1)] = this._normalizeData(data[key]);
-      }
-      // 是数组
-      if (data[key] instanceof Array) {
-        obj[key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, '')] = data[key].map(e => this._normalizeData(e));
+      switch (data[key].constructor.name) {
+        case 'Number':
+        case 'String':
+          obj._attributes = Object.assign(obj._attributes || {}, { [key]: data[key] });
+          break;
+        case 'Object':
+          obj[key.charAt(0).toUpperCase() + key.slice(1)] = this._normalizeData(data[key]);
+          break;
+        case 'Array':
+          obj[key.charAt(0).toUpperCase() + key.slice(1)] = data[key].map(e => this._normalizeData(e));
+          break;
+        default:
+          break;
       }
     });
     return obj;
